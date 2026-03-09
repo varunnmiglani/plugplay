@@ -47,6 +47,7 @@ export function useOfficeWebSocket(url: string) {
   }, []);
 
   useEffect(() => {
+    if (url === "ws://invalid") return;
     const ws = new WebSocket(url);
     wsRef.current = ws;
 

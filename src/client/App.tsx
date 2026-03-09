@@ -1,15 +1,25 @@
 import React, { useEffect, useRef } from "react";
 import { useOfficeWebSocket } from "./hooks/useWebSocket.js";
+import { useDemoMode } from "./hooks/useDemoMode.js";
 import { OfficeRenderer } from "./renderer/OfficeRenderer.js";
 import { StatusPanel } from "./components/StatusPanel.js";
+
+const isStaticDeploy = new URLSearchParams(window.location.search).has("demo") ||
+  !window.location.host.includes("localhost");
 
 const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 const WS_URL = `${wsProtocol}//${window.location.host}/ws?role=ui`;
 
+function useOffice() {
+  const ws = useOfficeWebSocket(isStaticDeploy ? "ws://invalid" : WS_URL);
+  const demo = useDemoMode();
+  return isStaticDeploy ? demo : ws;
+}
+
 export function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<OfficeRenderer | null>(null);
-  const { agents, office, connected } = useOfficeWebSocket(WS_URL);
+  const { agents, office, connected } = useOffice();
 
   // Initialize renderer
   useEffect(() => {
