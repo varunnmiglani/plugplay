@@ -1,0 +1,30 @@
+{
+  "name": "plugplay",
+  "version": "0.1.0",
+  "description": "Gather-style virtual office UI for visualizing agent activity",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "client": "vite",
+    "server": "tsx src/server/index.ts",
+    "build": "tsc && vite build",
+    "demo": "tsx src/demo/simulate.ts"
+  },
+  "dependencies": {
+    "@pixi/utils": "^7.3.3",
+    "concurrently": "^8.2.2",
+    "pixi.js": "^7.3.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@types/ws": "^8.5.10",
+    "@vitejs/plugin-react": "^4.2.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.12"
+  }
+}
