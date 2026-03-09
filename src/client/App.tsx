@@ -3,7 +3,8 @@ import { useOfficeWebSocket } from "./hooks/useWebSocket.js";
 import { OfficeRenderer } from "./renderer/OfficeRenderer.js";
 import { StatusPanel } from "./components/StatusPanel.js";
 
-const WS_URL = `ws://${window.location.hostname}:3001?role=ui`;
+const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+const WS_URL = `${wsProtocol}//${window.location.host}/ws?role=ui`;
 
 export function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);

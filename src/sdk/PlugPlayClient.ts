@@ -30,7 +30,7 @@ export class PlugPlayClient {
     this.id = options.id;
     this.name = options.name;
     this.avatar = options.avatar;
-    this.serverUrl = options.serverUrl || "ws://localhost:3001";
+    this.serverUrl = options.serverUrl || "ws://localhost:3001/ws";
   }
 
   /** Connect to the office server */

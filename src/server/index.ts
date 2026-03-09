@@ -1,9 +1,15 @@
+import { createServer } from "http";
+import { readFileSync, existsSync } from "fs";
+import { join, extname } from "path";
+import { fileURLToPath } from "url";
 import { WebSocketServer, WebSocket } from "ws";
 import type { Agent, ClientMessage, ServerMessage, OfficeLayout } from "../shared/types.js";
 import { createDefaultOffice, getRandomRoamPosition } from "../shared/office-layout.js";
 
-const PORT = 3001;
+const PORT = parseInt(process.env.PORT || "3001", 10);
 const OFFLINE_TIMEOUT_MS = 30_000;
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const DIST_DIR = join(__dirname, "../../dist");
 
 const office: OfficeLayout = createDefaultOffice();
 const agents = new Map<string, Agent>();
@@ -70,7 +76,37 @@ function sendSnapshot(client: WebSocket): void {
   client.send(JSON.stringify(msg));
 }
 
-const wss = new WebSocketServer({ port: PORT });
+const MIME_TYPES: Record<string, string> = {
+  ".html": "text/html",
+  ".js": "application/javascript",
+  ".css": "text/css",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".json": "application/json",
+};
+
+const httpServer = createServer((req, res) => {
+  let filePath = join(DIST_DIR, req.url === "/" ? "index.html" : req.url || "index.html");
+
+  // SPA fallback
+  if (!existsSync(filePath)) {
+    filePath = join(DIST_DIR, "index.html");
+  }
+
+  try {
+    const content = readFileSync(filePath);
+    const ext = extname(filePath);
+    res.writeHead(200, { "Content-Type": MIME_TYPES[ext] || "application/octet-stream" });
+    res.end(content);
+  } catch {
+    res.writeHead(404);
+    res.end("Not found");
+  }
+});
+
+httpServer.listen(PORT);
+
+const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
 
 wss.on("connection", (ws, req) => {
   const url = new URL(req.url || "/", `http://localhost:${PORT}`);
@@ -183,6 +219,6 @@ function randomColor(): string {
   return colors[nextDeskIndex++ % colors.length];
 }
 
-console.log(`[plugplay] Office server running on ws://localhost:${PORT}`);
-console.log(`[plugplay] UI clients connect to ws://localhost:${PORT}?role=ui`);
-console.log(`[plugplay] Agents connect to ws://localhost:${PORT}`);
+console.log(`[plugplay] Server running on http://localhost:${PORT}`);
+console.log(`[plugplay] UI: http://localhost:${PORT}`);
+console.log(`[plugplay] WebSocket: ws://localhost:${PORT}/ws`);
