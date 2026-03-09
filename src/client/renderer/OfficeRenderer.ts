@@ -6,7 +6,11 @@ import {
   drawDesk,
   drawCoffeeMachine,
   drawMeetingSpot,
+  drawMeetingTable,
   drawPlant,
+  drawBookshelf,
+  drawWhiteboard,
+  drawRug,
 } from "./PixelGraphics.js";
 
 const TILE = 48;
@@ -22,6 +26,7 @@ export class OfficeRenderer {
   private agentLayer: PIXI.Container;
   private agentSprites = new Map<string, AgentSprite>();
   private office: OfficeLayout | null = null;
+  private resizeHandler: () => void;
 
   constructor(canvas: HTMLCanvasElement) {
     this.app = new PIXI.Application({
@@ -44,8 +49,9 @@ export class OfficeRenderer {
     this.app.ticker.add((delta) => this.tick(delta));
 
     // Center the office
+    this.resizeHandler = () => this.centerView();
     this.centerView();
-    window.addEventListener("resize", () => this.centerView());
+    window.addEventListener("resize", this.resizeHandler);
   }
 
   /** Initialize the office layout */
@@ -57,9 +63,10 @@ export class OfficeRenderer {
     const floor = drawOfficeFloor(office.width, office.height);
     this.officeLayer.addChild(floor);
 
-    // Draw desks
-    for (const desk of office.desks) {
-      const deskSprite = drawDesk();
+    // Draw desks with varied colors
+    for (let i = 0; i < office.desks.length; i++) {
+      const desk = office.desks[i];
+      const deskSprite = drawDesk(i);
       deskSprite.x = desk.position.x * TILE;
       deskSprite.y = desk.position.y * TILE;
       this.officeLayer.addChild(deskSprite);
@@ -71,19 +78,21 @@ export class OfficeRenderer {
     coffee.y = office.coffeeArea.y * TILE;
     this.officeLayer.addChild(coffee);
 
-    // Draw meeting spots
-    for (const spot of office.meetingSpots) {
-      const meetingMarker = drawMeetingSpot();
-      meetingMarker.x = spot.x * TILE;
-      meetingMarker.y = spot.y * TILE;
-      this.officeLayer.addChild(meetingMarker);
+    // Draw meeting table in the center of meeting area
+    if (office.meetingSpots.length >= 4) {
+      const meetingTable = drawMeetingTable();
+      meetingTable.x = (office.meetingSpots[0].x) * TILE;
+      meetingTable.y = (office.meetingSpots[0].y) * TILE;
+      this.officeLayer.addChild(meetingTable);
     }
 
-    // Add some decorative plants
+    // Add decorative plants
     const plantPositions = [
       { x: 1, y: 1 },
       { x: office.width - 2, y: 1 },
       { x: office.width - 2, y: office.height - 2 },
+      { x: 1, y: office.height - 2 },
+      { x: 14, y: 1 },
     ];
     for (const pos of plantPositions) {
       const plant = drawPlant();
@@ -92,20 +101,48 @@ export class OfficeRenderer {
       this.officeLayer.addChild(plant);
     }
 
-    // Area labels
+    // Add bookshelves along the right wall
+    const bookshelfPositions = [
+      { x: office.width - 2, y: 3 },
+      { x: office.width - 2, y: 5 },
+    ];
+    for (const pos of bookshelfPositions) {
+      const shelf = drawBookshelf();
+      shelf.x = pos.x * TILE;
+      shelf.y = pos.y * TILE;
+      this.officeLayer.addChild(shelf);
+    }
+
+    // Whiteboard on top wall
+    const whiteboard = drawWhiteboard();
+    whiteboard.x = 15 * TILE;
+    whiteboard.y = 1 * TILE;
+    this.officeLayer.addChild(whiteboard);
+
+    // Rug near coffee area
+    const rug = drawRug();
+    rug.x = (office.coffeeArea.x + 1) * TILE;
+    rug.y = (office.coffeeArea.y + 1) * TILE;
+    this.officeLayer.addChild(rug);
+
+    // Area labels with Gather-style appearance
     const labels: { text: string; x: number; y: number }[] = [
-      { text: "WORKSPACE", x: 6, y: 1.2 },
-      { text: "KITCHEN", x: office.coffeeArea.x - 0.5, y: office.coffeeArea.y - 1 },
-      { text: "MEETING", x: office.meetingSpots[0].x - 0.3, y: office.meetingSpots[0].y - 1 },
+      { text: "💻 WORKSPACE", x: 5, y: 1.3 },
+      { text: "☕ KITCHEN", x: office.coffeeArea.x - 1, y: office.coffeeArea.y - 0.8 },
+      { text: "🤝 MEETING ROOM", x: office.meetingSpots[0].x - 0.5, y: office.meetingSpots[0].y - 1 },
     ];
 
     for (const l of labels) {
       const text = new PIXI.Text(l.text, {
-        fontSize: 10,
-        fill: 0x95a5a6,
+        fontSize: 9,
+        fill: 0xd4d4d4,
         fontFamily: "monospace",
         fontWeight: "bold",
-        letterSpacing: 2,
+        letterSpacing: 1,
+        dropShadow: true,
+        dropShadowColor: 0x000000,
+        dropShadowDistance: 1,
+        dropShadowAlpha: 0.4,
       });
       text.x = l.x * TILE;
       text.y = l.y * TILE;
@@ -153,8 +190,8 @@ export class OfficeRenderer {
 
     // Scale to fit with some padding
     const scale = Math.min(
-      (screenWidth - 40) / officeWidth,
-      (screenHeight - 40) / officeHeight,
+      (screenWidth - 20) / officeWidth,
+      (screenHeight - 20) / officeHeight,
       2 // max zoom
     );
 
@@ -164,7 +201,7 @@ export class OfficeRenderer {
   }
 
   destroy(): void {
-    window.removeEventListener("resize", () => this.centerView());
+    window.removeEventListener("resize", this.resizeHandler);
     this.app.destroy();
   }
 }

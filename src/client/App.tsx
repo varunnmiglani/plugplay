@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useOfficeWebSocket } from "./hooks/useWebSocket.js";
 import { useDemoMode } from "./hooks/useDemoMode.js";
 import { OfficeRenderer } from "./renderer/OfficeRenderer.js";
@@ -16,10 +16,21 @@ function useOffice() {
   return isStaticDeploy ? demo : ws;
 }
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return mobile;
+}
+
 export function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<OfficeRenderer | null>(null);
   const { agents, office, connected } = useOffice();
+  const isMobile = useIsMobile();
 
   // Initialize renderer
   useEffect(() => {
@@ -59,8 +70,14 @@ export function App() {
         <span style={styles.subtitle}>agent activity office</span>
       </div>
 
-      <div style={styles.main}>
-        <div style={styles.canvasWrapper}>
+      <div style={{
+        ...styles.main,
+        flexDirection: isMobile ? "column" : "row",
+      }}>
+        <div style={{
+          ...styles.canvasWrapper,
+          ...(isMobile ? { height: "55vh", flex: "none" } : {}),
+        }}>
           <canvas ref={canvasRef} style={styles.canvas} />
           {!connected && (
             <div style={styles.overlay}>
@@ -74,7 +91,7 @@ export function App() {
             </div>
           )}
         </div>
-        <StatusPanel agents={agents} connected={connected} />
+        <StatusPanel agents={agents} connected={connected} isMobile={isMobile} />
       </div>
     </div>
   );
@@ -97,6 +114,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "8px 16px",
     borderBottom: "1px solid #313244",
     backgroundColor: "#1e1e2e",
+    flexShrink: 0,
   },
   logo: {
     margin: 0,
@@ -122,6 +140,7 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     position: "relative",
     overflow: "hidden",
+    minHeight: 0,
   },
   canvas: {
     width: "100%",

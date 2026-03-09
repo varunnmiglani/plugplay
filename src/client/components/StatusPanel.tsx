@@ -25,9 +25,10 @@ const STATE_ICONS: Record<AgentState, string> = {
 interface StatusPanelProps {
   agents: Map<string, Agent>;
   connected: boolean;
+  isMobile?: boolean;
 }
 
-export function StatusPanel({ agents, connected }: StatusPanelProps) {
+export function StatusPanel({ agents, connected, isMobile }: StatusPanelProps) {
   const sortedAgents = Array.from(agents.values()).sort((a, b) => {
     const order: AgentState[] = ["working", "talking", "idle", "offline"];
     return order.indexOf(a.state) - order.indexOf(b.state);
@@ -41,7 +42,16 @@ export function StatusPanel({ agents, connected }: StatusPanelProps) {
   };
 
   return (
-    <div style={styles.panel}>
+    <div style={{
+      ...styles.panel,
+      ...(isMobile ? {
+        width: "100%",
+        borderLeft: "none",
+        borderTop: "1px solid #313244",
+        flex: 1,
+        minHeight: 0,
+      } : {}),
+    }}>
       <div style={styles.header}>
         <h2 style={styles.title}>Office Status</h2>
         <div style={{
@@ -114,8 +124,9 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "16px 16px 12px",
+    padding: "12px 16px 8px",
     borderBottom: "1px solid #313244",
+    flexShrink: 0,
   },
   title: {
     margin: 0,
@@ -132,8 +143,9 @@ const styles: Record<string, React.CSSProperties> = {
   stats: {
     display: "flex",
     gap: 8,
-    padding: "12px 16px",
+    padding: "10px 16px",
     borderBottom: "1px solid #313244",
+    flexShrink: 0,
   },
   stat: {
     display: "flex",
@@ -153,6 +165,7 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     overflowY: "auto",
     padding: 8,
+    minHeight: 0,
   },
   agentCard: {
     padding: "10px 12px",

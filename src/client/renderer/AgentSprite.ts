@@ -5,21 +5,19 @@ const TILE = 48;
 const MOVE_SPEED = 2; // pixels per frame
 
 /**
- * Pixel-art agent sprite with animations.
- * Each agent is a little character that moves around the office.
+ * Gather.town-style agent sprite with smooth animations.
+ * Each agent is a cute pixel character that moves around the office.
  */
 export class AgentSprite {
   public container: PIXI.Container;
   public agentData: Agent;
 
-  private body: PIXI.Graphics;
+  private body: PIXI.Container;
   private nameLabel: PIXI.Text;
   private statusBubble: PIXI.Container;
   private statusText: PIXI.Text;
   private targetX: number;
   private targetY: number;
-  private bobOffset = 0;
-  private bobDirection = 1;
   private idleTimer = 0;
 
   constructor(agent: Agent) {
@@ -38,19 +36,32 @@ export class AgentSprite {
     this.body.zIndex = 1;
     this.container.addChild(this.body);
 
-    // Name label
+    // Name label with background
+    const nameBg = new PIXI.Graphics();
     this.nameLabel = new PIXI.Text(agent.name, {
-      fontSize: 10,
+      fontSize: 9,
       fill: 0xffffff,
       fontFamily: "monospace",
       fontWeight: "bold",
-      stroke: 0x000000,
-      strokeThickness: 2,
     });
     this.nameLabel.anchor.set(0.5, 1);
     this.nameLabel.x = TILE / 2;
-    this.nameLabel.y = -2;
+    this.nameLabel.y = -4;
+
+    // Name background pill
+    nameBg.beginFill(0x000000, 0.55);
+    nameBg.drawRoundedRect(
+      TILE / 2 - this.nameLabel.width / 2 - 4,
+      -4 - this.nameLabel.height - 2,
+      this.nameLabel.width + 8,
+      this.nameLabel.height + 4,
+      4
+    );
+    nameBg.endFill();
+    nameBg.zIndex = 3;
     this.nameLabel.zIndex = 3;
+
+    this.container.addChild(nameBg);
     this.container.addChild(this.nameLabel);
 
     // Status bubble
@@ -80,41 +91,93 @@ export class AgentSprite {
     this.updateState(agent);
   }
 
-  private drawCharacter(color: string): PIXI.Graphics {
+  private drawCharacter(color: string): PIXI.Container {
+    const c = new PIXI.Container();
     const g = new PIXI.Graphics();
-    const c = PIXI.utils.string2hex(color);
+    const hex = PIXI.utils.string2hex(color);
 
     // Shadow
-    g.beginFill(0x000000, 0.2);
-    g.drawEllipse(TILE / 2, TILE - 4, 12, 4);
+    g.beginFill(0x000000, 0.15);
+    g.drawEllipse(TILE / 2, TILE - 3, 11, 4);
     g.endFill();
 
-    // Body
-    g.beginFill(c);
-    g.drawRoundedRect(14, 18, 20, 22, 4);
+    // --- Body (shirt) ---
+    g.beginFill(hex);
+    g.drawRoundedRect(15, 22, 18, 16, 3);
+    g.endFill();
+    // Shirt highlight
+    g.beginFill(lighten(hex, 0.15));
+    g.drawRoundedRect(17, 23, 6, 12, 2);
     g.endFill();
 
-    // Head
-    g.beginFill(0xfdbcb4); // skin tone
-    g.drawCircle(TILE / 2, 14, 10);
+    // Arms
+    g.beginFill(hex);
+    g.drawRoundedRect(11, 24, 6, 10, 3);
+    g.drawRoundedRect(31, 24, 6, 10, 3);
+    g.endFill();
+
+    // Hands (skin)
+    g.beginFill(0xfdbcb4);
+    g.drawCircle(14, 35, 3);
+    g.drawCircle(34, 35, 3);
+    g.endFill();
+
+    // --- Legs/pants ---
+    g.beginFill(darken(hex, 0.35));
+    g.drawRect(17, 36, 7, 8);
+    g.drawRect(25, 36, 7, 8);
+    g.endFill();
+
+    // Shoes
+    g.beginFill(0x3a3a4a);
+    g.drawRoundedRect(16, 42, 8, 4, 2);
+    g.drawRoundedRect(24, 42, 8, 4, 2);
+    g.endFill();
+
+    // --- Head ---
+    // Head shape
+    g.beginFill(0xfdbcb4);
+    g.drawRoundedRect(16, 6, 16, 17, 6);
     g.endFill();
 
     // Hair
-    g.beginFill(darken(c, 0.3));
-    g.drawRoundedRect(14, 4, 20, 10, 6);
+    g.beginFill(darken(hex, 0.4));
+    g.drawRoundedRect(14, 2, 20, 10, 6);
+    g.endFill();
+    // Side hair
+    g.beginFill(darken(hex, 0.4));
+    g.drawRoundedRect(14, 6, 4, 8, 2);
+    g.drawRoundedRect(30, 6, 4, 8, 2);
     g.endFill();
 
-    // Eyes
+    // Eyes (white + pupil for Gather look)
+    g.beginFill(0xffffff);
+    g.drawCircle(20, 14, 3);
+    g.drawCircle(28, 14, 3);
+    g.endFill();
     g.beginFill(0x2c3e50);
-    g.drawCircle(20, 14, 2);
-    g.drawCircle(28, 14, 2);
+    g.drawCircle(21, 14, 1.8);
+    g.drawCircle(29, 14, 1.8);
+    g.endFill();
+    // Eye highlight
+    g.beginFill(0xffffff);
+    g.drawCircle(20.5, 13, 0.8);
+    g.drawCircle(28.5, 13, 0.8);
     g.endFill();
 
-    // Smile
-    g.lineStyle(1.5, 0x2c3e50);
-    g.arc(TILE / 2, 17, 4, 0.2, Math.PI - 0.2);
+    // Mouth (small smile)
+    g.lineStyle(1, 0xc48a80);
+    g.arc(TILE / 2, 18, 3, 0.3, Math.PI - 0.3);
 
-    return g;
+    // Cheeks (blush)
+    g.lineStyle(0);
+    g.beginFill(0xf5a0a0, 0.25);
+    g.drawEllipse(17, 17, 3, 2);
+    g.drawEllipse(31, 17, 3, 2);
+    g.endFill();
+
+    c.addChild(g);
+    return c;
   }
 
   updateState(agent: Agent): void {
@@ -132,10 +195,10 @@ export class AgentSprite {
     if (bubbleBg) {
       bubbleBg.clear();
       bubbleBg.beginFill(0xffffff, 0.95);
-      bubbleBg.lineStyle(1, 0xbdc3c7);
-      bubbleBg.drawRoundedRect(0, 0, this.statusText.width + 12, this.statusText.height + 8, 6);
+      bubbleBg.lineStyle(1, 0xd0d0d0);
+      bubbleBg.drawRoundedRect(0, 0, this.statusText.width + 12, this.statusText.height + 8, 8);
       bubbleBg.endFill();
-      // Little triangle pointer
+      // Triangle pointer
       bubbleBg.beginFill(0xffffff, 0.95);
       bubbleBg.moveTo(-4, 8);
       bubbleBg.lineTo(0, 4);
@@ -154,7 +217,6 @@ export class AgentSprite {
   }
 
   private updateStateIndicator(state: AgentState): void {
-    // Remove old indicator
     const old = this.container.getChildByName("stateIndicator");
     if (old) this.container.removeChild(old);
 
@@ -163,20 +225,23 @@ export class AgentSprite {
     indicator.zIndex = 4;
 
     const colors: Record<AgentState, number> = {
-      working: 0x27ae60, // green
-      idle: 0xf39c12, // yellow
-      talking: 0x3498db, // blue
-      offline: 0x95a5a6, // gray
+      working: 0x27ae60,
+      idle: 0xf39c12,
+      talking: 0x3498db,
+      offline: 0x95a5a6,
     };
 
-    indicator.beginFill(colors[state]);
-    indicator.drawCircle(TILE - 6, 6, 4);
+    // Outer glow
+    indicator.beginFill(colors[state], 0.3);
+    indicator.drawCircle(TILE - 4, 4, 6);
     indicator.endFill();
-    indicator.beginFill(0xffffff);
-    indicator.drawCircle(TILE - 6, 6, 2);
-    indicator.endFill();
+    // Main dot
     indicator.beginFill(colors[state]);
-    indicator.drawCircle(TILE - 6, 6, 1.5);
+    indicator.drawCircle(TILE - 4, 4, 4);
+    indicator.endFill();
+    // Inner highlight
+    indicator.beginFill(0xffffff, 0.4);
+    indicator.drawCircle(TILE - 5, 3, 1.5);
     indicator.endFill();
 
     this.container.addChild(indicator);
@@ -195,14 +260,18 @@ export class AgentSprite {
       this.container.y += (dy / dist) * Math.min(speed, dist);
     }
 
-    // Bob animation when idle
+    // Idle bob animation
     if (this.agentData.state === "idle") {
       this.idleTimer += delta * 0.03;
       this.body.y = Math.sin(this.idleTimer) * 2;
     } else if (this.agentData.state === "working") {
-      // Subtle typing animation
+      // Subtle typing motion
       this.idleTimer += delta * 0.08;
       this.body.y = Math.sin(this.idleTimer) * 0.5;
+    } else if (this.agentData.state === "talking") {
+      // Gentle bounce when talking
+      this.idleTimer += delta * 0.05;
+      this.body.y = Math.abs(Math.sin(this.idleTimer)) * 1.5;
     } else {
       this.body.y = 0;
     }
@@ -213,5 +282,12 @@ function darken(color: number, amount: number): number {
   const r = Math.max(0, ((color >> 16) & 0xff) * (1 - amount));
   const g = Math.max(0, ((color >> 8) & 0xff) * (1 - amount));
   const b = Math.max(0, (color & 0xff) * (1 - amount));
+  return (r << 16) | (g << 8) | b;
+}
+
+function lighten(color: number, amount: number): number {
+  const r = Math.min(255, ((color >> 16) & 0xff) * (1 + amount));
+  const g = Math.min(255, ((color >> 8) & 0xff) * (1 + amount));
+  const b = Math.min(255, (color & 0xff) * (1 + amount));
   return (r << 16) | (g << 8) | b;
 }
